@@ -12,16 +12,7 @@ module Project(
     output [6:0] HEX4,
     output [6:0] HEX5,
     output [6:0] HEX6,
-    output [6:0] HEX7,
-    // The ports below are for the VGA output.
-    output  VGA_CLK,                        //  VGA Clock
-    output VGA_HS,                          //  VGA H_SYNC
-    output VGA_VS,                          //  VGA V_SYNC
-    output VGA_BLANK_N,                     //  VGA BLANK
-    output VGA_SYNC_N,                      //  VGA SYNC
-    output [9:0] VGA_R,                         //  VGA Red[9:0]
-    output [9:0] VGA_G,                         //  VGA Green[9:0]
-    output [9:0] VGA_B                          //  VGA Blue[9:0]
+    output [6:0] HEX7
     );
 
     // Input wires
