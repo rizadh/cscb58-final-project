@@ -168,40 +168,41 @@ module control(
     output reg motor_right_active,
     output reg motor_right_reverse,
     output reg [3:0] motor_signal,
-    
+
     output reg diag0,
     output diag1,
     output diag2,
     output diag3,
-     output [3:0] diag4,
-     output [3:0] diag5,
-     output diag6
+    output [3:0] diag4,
+    output [3:0] diag5,
+    output diag6
     );
 
     // State registers
     reg [3:0] current_state, next_state, prev_state;
-     
-     reg correct_next_state_STOP;
-     reg correct_next_state_MOVE_FORWARD;
-     reg correct_next_state_MOVE_REVERSE;
-     reg correct_next_state_TURN_RIGHT;
-     reg correct_next_state_TURN_LEFT;
-     reg correct_next_state_MOVE_RIGHT;
-     reg correct_next_state_MOVE_LEFT;
-     reg correct_next_state_MOVE_BACKWARD;
-     reg correct_next_state_TURN_BACK;
-     
-     reg [3:0] correct_next_state;
-    
-     assign diag4 = current_state;
-     assign diag5 = correct_next_state;
+
+    reg correct_next_state_STOP;
+    reg correct_next_state_MOVE_FORWARD;
+    reg correct_next_state_MOVE_REVERSE;
+    reg correct_next_state_TURN_RIGHT;
+    reg correct_next_state_TURN_LEFT;
+    reg correct_next_state_MOVE_RIGHT;
+    reg correct_next_state_MOVE_LEFT;
+    reg correct_next_state_MOVE_BACKWARD;
+    reg correct_next_state_TURN_BACK;
+
+    reg [3:0] correct_next_state;
+
+    assign diag4 = current_state;
+    assign diag5 = correct_next_state;
+
     // Timing parameters
     reg reverse_active, turn_active, avoid_active, turn_back_active, state_change_active;
     wire turn_complete, reverse_complete, avoid_complete, turn_back_complete, state_change_complete;
-    localparam REVERSE_CYCLES = 32'd150_000_000, // 1500ms
-               TURN_CYCLES    = 32'd150_000_000,  // 0.4s
-               AVOID_CYCLES   = 32'd150_000_000,  // 1s
-           STATE_CHANGE_CYCLES = 32'd2_500_000; //0.5ms
+    localparam REVERSE_CYCLES      = 32'd150_000_000, // 1500ms
+               TURN_CYCLES         = 32'd150_000_000, // 0.4s
+               AVOID_CYCLES        = 32'd150_000_000, // 3s
+               STATE_CHANGE_CYCLES = 32'd2_500_000;   // 0.5ms
 
     // Timers
     timer_32 reverse_timer(
@@ -231,7 +232,7 @@ module control(
         .active(avoid_active),
         .complete(avoid_complete)
     );
-     
+
      timer_32 state_change_timer(
             .clk(clk),
             .n_cycles(STATE_CHANGE_CYCLES),
@@ -258,19 +259,19 @@ module control(
 
     // Initial state
     initial begin
-            current_state = S_STOP;
-            correct_next_state = S_STOP;
-            prev_state = S_STOP;
-            correct_next_state_STOP = 1'b1;
-            correct_next_state_MOVE_FORWARD= 1'b0;
-            correct_next_state_MOVE_REVERSE= 1'b0;
-            correct_next_state_TURN_RIGHT= 1'b0;
-            correct_next_state_TURN_LEFT= 1'b0;
-            correct_next_state_MOVE_RIGHT= 1'b0;
-            correct_next_state_MOVE_LEFT= 1'b0;
-            correct_next_state_MOVE_BACKWARD= 1'b0;
-            correct_next_state_TURN_BACK= 1'b0;
-          state_change_active = 1'b0;
+        current_state = S_STOP;
+        correct_next_state = S_STOP;
+        prev_state = S_STOP;
+        correct_next_state_STOP = 1'b1;
+        correct_next_state_MOVE_FORWARD= 1'b0;
+        correct_next_state_MOVE_REVERSE= 1'b0;
+        correct_next_state_TURN_RIGHT= 1'b0;
+        correct_next_state_TURN_LEFT= 1'b0;
+        correct_next_state_MOVE_RIGHT= 1'b0;
+        correct_next_state_MOVE_LEFT= 1'b0;
+        correct_next_state_MOVE_BACKWARD= 1'b0;
+        correct_next_state_TURN_BACK= 1'b0;
+        state_change_active = 1'b0;
     end
 
     // Timer control
@@ -291,211 +292,215 @@ module control(
     // State control (FSM)
     always@(posedge clk) begin
         case (current_state)
-            S_STOP: begin
-                          if(correct_next_state_STOP && state_change_complete) begin
-                                state_change_active = 1'b0;
-                                if(start) begin
-                                    correct_next_state_STOP <= 1'b0;
-                                    correct_next_state_MOVE_FORWARD <= 1'b1;
-                                    state_change_active = 1'b1;
-                                    correct_next_state = S_MOVE_FORWARD;
-                                end else
-                                    correct_next_state <= S_STOP;
-                          end
+        S_STOP: begin
+            if(correct_next_state_STOP && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if(start) begin
+                    correct_next_state_STOP <= 1'b0;
+                    correct_next_state_MOVE_FORWARD <= 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_MOVE_FORWARD;
+                end else
+                    correct_next_state <= S_STOP;
+            end
+        end
+        S_MOVE_FORWARD: begin
+            if(correct_next_state_MOVE_FORWARD && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if(obstacle_detected) begin
+                    correct_next_state_MOVE_FORWARD = 1'b0;
+                    correct_next_state_MOVE_REVERSE = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_MOVE_REVERSE;
+                end else
+                    correct_next_state <= S_MOVE_FORWARD;
+            end
+        end
+        S_MOVE_RIGHT: begin
+            if(correct_next_state_MOVE_RIGHT && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if(obstacle_detected) begin
+                    correct_next_state_MOVE_RIGHT = 1'b0;
+                    correct_next_state_MOVE_REVERSE = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_MOVE_REVERSE;
+                end else if (avoid_complete) begin
+                    correct_next_state_MOVE_RIGHT = 1'b0;
+                    correct_next_state_TURN_LEFT = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_TURN_LEFT;
+                end else
+                    correct_next_state = S_MOVE_RIGHT;
+            end
+        end
+        S_MOVE_LEFT: begin
+            if(correct_next_state_MOVE_LEFT && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if(obstacle_detected) begin
+                    correct_next_state_MOVE_LEFT= 1'b0;
+                    correct_next_state_MOVE_REVERSE = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_MOVE_REVERSE;
+                end else if(avoid_complete) begin
+                    correct_next_state_MOVE_LEFT = 1'b0;
+                    correct_next_state_TURN_LEFT = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_TURN_LEFT;
+                end else
+                    correct_next_state = S_MOVE_LEFT;
+            end
+        end
+        S_MOVE_BACKWARD:  begin
+            if(correct_next_state_MOVE_BACKWARD && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if(obstacle_detected) begin
+                    correct_next_state_MOVE_BACKWARD = 1'b0;
+                    correct_next_state_MOVE_REVERSE = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_MOVE_REVERSE;
+                end else if(avoid_complete) begin
+                    correct_next_state_MOVE_BACKWARD = 1'b0;
+                    correct_next_state_TURN_LEFT = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_TURN_LEFT;
+                end else
+                    correct_next_state = S_MOVE_BACKWARD;
+            end
+        end
+        S_MOVE_REVERSE: begin
+            if(correct_next_state_MOVE_REVERSE && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if(reverse_complete) begin
+                    correct_next_state_MOVE_REVERSE = 1'b0;
+                    correct_next_state_TURN_RIGHT = 1'b1;
+                    state_change_active = 1'b1;
+                    correct_next_state = S_TURN_RIGHT;
+                end else
+                    correct_next_state <= S_MOVE_REVERSE;
+            end
+        end
+        S_TURN_LEFT: begin
+            if(correct_next_state_TURN_LEFT && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if (turn_complete) begin
+                    if (obstacle_detected) begin
+                        correct_next_state_TURN_LEFT = 1'b0;
+                        correct_next_state_TURN_BACK = 1'b1;
+                        state_change_active = 1'b1;
+                        correct_next_state = S_TURN_BACK;
+                    end else begin
+                        case (prev_state)
+                        S_MOVE_RIGHT: begin
+                            correct_next_state_TURN_LEFT = 1'b0;
+                            correct_next_state_MOVE_FORWARD = 1'b1;
+                            state_change_active = 1'b1;
+                            correct_next_state = S_MOVE_FORWARD;
                         end
-            S_MOVE_FORWARD: begin
-                            if(correct_next_state_MOVE_FORWARD && state_change_complete) begin
-                                state_change_active = 1'b0;
-                                if(obstacle_detected) begin
-                                    correct_next_state_MOVE_FORWARD = 1'b0;
-                                    correct_next_state_MOVE_REVERSE = 1'b1;
-                                    state_change_active = 1'b1;
-                                   correct_next_state = S_MOVE_REVERSE;
-                                end else
-                                    correct_next_state <= S_MOVE_FORWARD;
-                            end
-        end
-            S_MOVE_RIGHT: begin
-                            if(correct_next_state_MOVE_RIGHT && state_change_complete) begin
-                                state_change_active = 1'b0;
-                                if(obstacle_detected) begin
-                                    correct_next_state_MOVE_RIGHT = 1'b0;
-                                    correct_next_state_MOVE_REVERSE = 1'b1;
-                                    state_change_active = 1'b1;
-                                    correct_next_state = S_MOVE_REVERSE;
-                                end else begin
-                                    if(avoid_complete) begin
-                                        correct_next_state_MOVE_RIGHT = 1'b0;
-                                        correct_next_state_TURN_LEFT = 1'b1;
-                                        state_change_active = 1'b1;
-                                        correct_next_state = S_TURN_LEFT;
-                                    end else
-                                        correct_next_state <= S_MOVE_RIGHT;
-                                end
-                          end
-        end
-            S_MOVE_LEFT: begin
-                            if(correct_next_state_MOVE_LEFT && state_change_complete) begin
-                                state_change_active = 1'b0;
-                                if(obstacle_detected) begin
-                                    correct_next_state_MOVE_LEFT= 1'b0;
-                                    correct_next_state_MOVE_REVERSE = 1'b1;
-                                    state_change_active = 1'b1;
-                                    correct_next_state = S_MOVE_REVERSE;
-                                end else begin
-                                    if(avoid_complete) begin
-                                        correct_next_state_MOVE_LEFT = 1'b0;
-                                        correct_next_state_TURN_LEFT = 1'b1;
-                                        state_change_active = 1'b1;
-                                        correct_next_state = S_TURN_LEFT;
-                                    end else
-                                        correct_next_state <= S_MOVE_LEFT;
-                                end
-                            end
-        end
-            S_MOVE_BACKWARD:  begin
-                            if(correct_next_state_MOVE_BACKWARD && state_change_complete) begin
-                                state_change_active = 1'b0;
-                                if(obstacle_detected) begin
-                                    correct_next_state_MOVE_BACKWARD = 1'b0;
-                                    correct_next_state_MOVE_REVERSE = 1'b1;
-                                    state_change_active = 1'b1;
-                                    correct_next_state = S_MOVE_REVERSE;
-                                end else begin
-                                    if(avoid_complete) begin
-                                        correct_next_state_MOVE_BACKWARD = 1'b0;
-                                        correct_next_state_TURN_LEFT = 1'b1;
-                                        state_change_active = 1'b1;
-                                        correct_next_state = S_TURN_LEFT;
-                                    end else
-                                        correct_next_state <= S_MOVE_BACKWARD;
-                                end
-                            end
-        end
-            S_MOVE_REVERSE: begin
-                            if(correct_next_state_MOVE_REVERSE && state_change_complete) begin
-                                state_change_active = 1'b0;
-                                if(reverse_complete) begin
-                                    correct_next_state_MOVE_REVERSE = 1'b0;
-                                    correct_next_state_TURN_RIGHT = 1'b1;
-                                    state_change_active = 1'b1;
-                                    correct_next_state = S_TURN_RIGHT;
-                                end else
-                                    correct_next_state <= S_MOVE_REVERSE;
-                            end
-        end
-            S_TURN_LEFT: begin
-                    if(correct_next_state_TURN_LEFT && state_change_complete) begin
-                        state_change_active = 1'b0;
-                        if (turn_complete) begin
-                            if (obstacle_detected) begin
-                                    correct_next_state_TURN_LEFT = 1'b0;
-                                    correct_next_state_TURN_BACK = 1'b1;
-                                    state_change_active = 1'b1;
-                                    correct_next_state = S_TURN_BACK;
-                            end else begin
-                                    case (prev_state)
-                                        S_MOVE_RIGHT: begin
-                                            correct_next_state_TURN_LEFT = 1'b0;
-                                            correct_next_state_MOVE_FORWARD = 1'b1;
-                                            state_change_active = 1'b1;
-                                            correct_next_state = S_MOVE_FORWARD;
-                                        end
-                                        S_MOVE_LEFT: begin
-                                            correct_next_state_TURN_LEFT = 1'b0;
-                                            correct_next_state_MOVE_BACKWARD = 1'b1;
-                                            state_change_active = 1'b1;
-                                            correct_next_state = S_MOVE_BACKWARD;
-                                        end
-                                        S_MOVE_BACKWARD: begin
-                                            correct_next_state_TURN_LEFT = 1'b0;
-                                            correct_next_state_MOVE_RIGHT = 1'b1;
-                                            state_change_active = 1'b1;
-                                            correct_next_state = S_MOVE_RIGHT;
-                                        end
-                                        default: begin
-                                        correct_next_state_TURN_LEFT = 1'b0;
-                                        correct_next_state_STOP = 1'b1;
-                                        correct_next_state <= S_STOP;
-                                        end
-                                    endcase
-                            end
-                        end else
-                            correct_next_state <= S_TURN_LEFT;
+                        S_MOVE_LEFT: begin
+                            correct_next_state_TURN_LEFT = 1'b0;
+                            correct_next_state_MOVE_BACKWARD = 1'b1;
+                            state_change_active = 1'b1;
+                            correct_next_state = S_MOVE_BACKWARD;
+                        end
+                        S_MOVE_BACKWARD: begin
+                            correct_next_state_TURN_LEFT = 1'b0;
+                            correct_next_state_MOVE_RIGHT = 1'b1;
+                            state_change_active = 1'b1;
+                            correct_next_state = S_MOVE_RIGHT;
+                        end
+                        default: begin
+                            correct_next_state_TURN_LEFT = 1'b0;
+                            correct_next_state_STOP = 1'b1;
+                            correct_next_state = S_STOP;
+                        end
+                        endcase
                     end
+                end else
+                    correct_next_state <= S_TURN_LEFT;
             end
-            S_TURN_RIGHT: begin
-                    if(correct_next_state_TURN_RIGHT && state_change_complete) begin
-                        state_change_active = 1'b0;
-                        if (turn_complete) begin
-                            case (prev_state)
-                                    S_MOVE_FORWARD: begin
-                                            correct_next_state_TURN_RIGHT = 1'b0;
-                                            correct_next_state_MOVE_RIGHT = 1'b1;
-                                            state_change_active = 1'b1;
-                                            correct_next_state = S_MOVE_RIGHT;
-                                    end
-                                    S_MOVE_LEFT: begin
-                                            correct_next_state_TURN_RIGHT = 1'b0;
-                                            correct_next_state_MOVE_FORWARD = 1'b1;
-                                            state_change_active = 1'b1;
-                                            correct_next_state = S_MOVE_FORWARD;
-                                    end
-                                    S_MOVE_RIGHT: begin
-                                            correct_next_state_TURN_RIGHT = 1'b0;
-                                            correct_next_state_MOVE_BACKWARD = 1'b1;
-                                            state_change_active = 1'b1;
-                                            correct_next_state = S_MOVE_BACKWARD;
-                                    end
-                                    S_MOVE_BACKWARD: begin
-                                            correct_next_state_TURN_RIGHT = 1'b0;
-                                            correct_next_state_MOVE_LEFT = 1'b1;
-                                            state_change_active = 1'b1;
-                                            correct_next_state = S_MOVE_LEFT;
-                                    end
-                                    default: begin
-                                        correct_next_state_TURN_RIGHT = 1'b0;
-                                        correct_next_state_STOP = 1'b1;
-                                        correct_next_state <= S_STOP;
-                                    end
-                            endcase
-                        end else
-                            correct_next_state <= S_TURN_RIGHT;
+        end
+        S_TURN_RIGHT: begin
+            if(correct_next_state_TURN_RIGHT && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if (turn_complete) begin
+                    case (prev_state)
+                    S_MOVE_FORWARD: begin
+                        correct_next_state_TURN_RIGHT = 1'b0;
+                        correct_next_state_MOVE_RIGHT = 1'b1;
+                        state_change_active = 1'b1;
+                        correct_next_state = S_MOVE_RIGHT;
                     end
+                    S_MOVE_LEFT: begin
+                        correct_next_state_TURN_RIGHT = 1'b0;
+                        correct_next_state_MOVE_FORWARD = 1'b1;
+                        state_change_active = 1'b1;
+                        correct_next_state = S_MOVE_FORWARD;
+                    end
+                    S_MOVE_RIGHT: begin
+                        correct_next_state_TURN_RIGHT = 1'b0;
+                        correct_next_state_MOVE_BACKWARD = 1'b1;
+                        state_change_active = 1'b1;
+                        correct_next_state = S_MOVE_BACKWARD;
+                    end
+                    S_MOVE_BACKWARD: begin
+                        correct_next_state_TURN_RIGHT = 1'b0;
+                        correct_next_state_MOVE_LEFT = 1'b1;
+                        state_change_active = 1'b1;
+                        correct_next_state = S_MOVE_LEFT;
+                    end
+                    default: begin
+                        correct_next_state_TURN_RIGHT = 1'b0;
+                        correct_next_state_STOP = 1'b1;
+                        correct_next_state = S_STOP;
+                    end
+                    endcase
+                end else
+                    correct_next_state = S_TURN_RIGHT;
             end
-            S_TURN_BACK: begin
-                     if(correct_next_state_TURN_BACK && state_change_complete) begin
-                                state_change_active = 1'b0;
-                                if(turn_back_complete) begin
-                                    correct_next_state_TURN_BACK = 1'b0;
-                                    state_change_active = 1'b1;
-                                    case(prev_state)
-                                        S_MOVE_FORWARD: begin
-                                            correct_next_state_MOVE_FORWARD = 1'b1;
-                                            correct_next_state = S_MOVE_FORWARD;
-                                        end
-                                        S_MOVE_LEFT: begin
-                                            correct_next_state_MOVE_LEFT = 1'b1;
-                                            correct_next_state = S_MOVE_LEFT;
-                                        end
-                                        S_MOVE_RIGHT: begin
-                                            correct_next_state_MOVE_RIGHT = 1'b1;
-                                            correct_next_state = S_MOVE_RIGHT;
-                                        end
-                                        S_MOVE_BACKWARD: begin
-                                            correct_next_state_MOVE_BACKWARD = 1'b1;
-                                            correct_next_state = S_MOVE_BACKWARD;
-                                        end
-                                    default: begin
-                                        correct_next_state_STOP = 1'b1;
-                                        correct_next_state <= S_STOP;
-                                    end
-                                    endcase
-                                end else
-                                    correct_next_state <= S_TURN_BACK;
-                     end
+        end
+        S_TURN_BACK: begin
+            if(correct_next_state_TURN_BACK && state_change_complete) begin
+                state_change_active = 1'b0;
+
+                if(turn_back_complete) begin
+                    correct_next_state_TURN_BACK = 1'b0;
+                    state_change_active = 1'b1;
+
+                    case(prev_state)
+                    S_MOVE_FORWARD: begin
+                        correct_next_state_MOVE_FORWARD = 1'b1;
+                        correct_next_state = S_MOVE_FORWARD;
+                    end
+                    S_MOVE_LEFT: begin
+                        correct_next_state_MOVE_LEFT = 1'b1;
+                        correct_next_state = S_MOVE_LEFT;
+                    end
+                    S_MOVE_RIGHT: begin
+                        correct_next_state_MOVE_RIGHT = 1'b1;
+                        correct_next_state = S_MOVE_RIGHT;
+                    end
+                    S_MOVE_BACKWARD: begin
+                        correct_next_state_MOVE_BACKWARD = 1'b1;
+                        correct_next_state = S_MOVE_BACKWARD;
+                    end
+                    default: begin
+                        correct_next_state_STOP = 1'b1;
+                        correct_next_state <= S_STOP;
+                    end
+                    endcase
+                end else
+                    correct_next_state = S_TURN_BACK;
             end
-        endcase
+        end
+    endcase
     end
 
     // Output control
@@ -506,34 +511,25 @@ module control(
                 motor_left_reverse <= 1'b0;
                 motor_right_active <= 1'b1;
                 motor_right_reverse <= 1'b0;
-
-
             end
             S_MOVE_REVERSE: begin
                 motor_left_active <= 1'b1;
                 motor_left_reverse <= 1'b1;
                 motor_right_active <= 1'b1;
                 motor_right_reverse <= 1'b1;
-
-            
             end
             S_TURN_LEFT: begin
                 motor_left_active <= 1'b1;
                 motor_left_reverse <= 1'b1;
                 motor_right_active <= 1'b1;
                 motor_right_reverse <= 1'b0;
-
-                
             end
             S_TURN_RIGHT: begin
                 motor_left_active <= 1'b1;
                 motor_left_reverse <= 1'b0;
                 motor_right_active <= 1'b1;
                 motor_right_reverse <= 1'b1;
-
             end
-            
-            
             S_TURN_BACK: begin
                 motor_left_active <= 1'b1;
                 motor_left_reverse <= 1'b0;
@@ -541,17 +537,16 @@ module control(
                 motor_right_reverse <= 1'b1;
 
             end
-            
             default: begin
                 motor_left_active <= 1'b0;
                 motor_left_reverse <= 1'b0;
                 motor_right_active <= 1'b0;
                 motor_right_reverse <= 1'b0;
-                
+
             end
         endcase
     end
-    
+
     // Distance counting
     initial
         distance_count <= 64'b0;
