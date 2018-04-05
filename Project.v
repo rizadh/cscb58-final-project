@@ -123,16 +123,14 @@ module Project(
         .motor_right_active(motor_right_active),
         .motor_right_reverse(motor_right_reverse),
         .motor_signal(signal),
-        // TODO: Remove these
         .diag0(LEDG[1]),
         .diag1(LEDG[2]),
         .diag2(LEDG[3]),
         .diag3(LEDG[4]),
-		  .diag4(LEDR[7:4]),
-		  .diag5(LEDR[11:8]),
-		  .diag6(LEDR[13])
+        .diag4(LEDR[7:4]),
+        .diag5(LEDR[11:8]),
+        .diag6(LEDR[13])
     );
-    
 
     // Output wires
     assign GPIO[0] = trig;
@@ -159,160 +157,6 @@ module Project(
     assign LEDR[1] = motor_right_reverse;
     assign LEDR[2] = motor_left_reverse;
     assign LEDR[3] = motor_left_active;
-
-
-
-
-	// Create.VGA_CLK(VGA_CLK)); the color, x, y and writeEn wires that are inputs to the controller.
-	wire [2:0] color;
-	wire [7:0] x;
-	wire [6:0] y;
-	wire writeEn;
-
-	// Create an Instance of a VGA controller - there can be only one!
-	// Define the number of colors as well as the initial background
-	// image file (.MIF) for the controller.
-	vga_adapter VGA(
-		.resetn(!reset),
-		.clock(CLOCK_50),
-		.colour(color),
-		.x(x),
-		.y(y),
-		.plot(1'b1),
-		// Signals for the DAC to drive the monitor. 
-		.VGA_R(VGA_R),
-		.VGA_G(VGA_G),
-		.VGA_B(VGA_B),
-		.VGA_HS(VGA_HS),
-		.VGA_VS(VGA_VS),
-		.VGA_BLANK(VGA_BLANK_N),
-		.VGA_SYNC(VGA_SYNC_N),
-		.VGA_CLK(VGA_CLK));
-	defparam VGA.RESOLUTION = "160x120";
-	defparam VGA.MONOCHROME = "FALSE";
-	defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
-	defparam VGA.BACKGROUND_IMAGE = "black.mif";
-
-	// VGA signals x,y,color and writeEn/plot
-	// for the VGA controller, in addition to any other functionality your design may require.
-
-    // Declare required wires and regs for VGA
-    reg [2:0] color_in;
-    wire go;
-	wire [2:0] motor;
-    reg [7:0] x_reg;
-    wire [7:0] x_in;
-    wire [6:0] y_in;
-	wire new_clk;
-    wire x_offset, y_offset;
-	reg [7:0] vert;
-	reg [6:0] horz;
-	reg [2:0] color_change;
-
-
-    // Assign board inputs
-    color_change = 3'b001;
-    initial color_in = 3'b001;
-    assign go = 1'b0;
-	
-	// set the new position
-	initial vert = 8'b01111100;
-	initial horz = 7'b0111000;
-
-			
-	reg [2:0] two_cm_vert_counter;
-	reg [2:0] total_vert_counter;
-	reg [2:0] two_cm_horz_counter;
-	reg [2:0] total_horz_counter;
-	reg [1:0] reverse_counter;
-	localparam CAR_SPEED = 5'd5, // 5 cm/second
-			   DISTANCE_THRESHOLD = 5'd2, // 2 cm
-			   CLOCK_RATE = 5'd20; // 20 cycles/second
-	reg counter_threshold;
-	initial counter_threshold = 4'd8; // 8 counter increments mean 2 cm has been travelled. distance threshold / car speed * clock_rate 
-			   
-	// In vertical and horizontal directions, separate counters track total distance moved up to 2 cm (8 new_clock cycles), representing one pixel on the VGA. When the threshold
-	// of 2 cm is reached, a new pixel gets drawn.
-    always@(posedge ~KEY[3])
-			case(signal)
-				4'd1: begin //Forward
-					two_cm_vert_counter <= two_cm_vert_counter + 1'b1;
-					if(two_cm_vert_counter == counter_threshold) begin
-						vert <= vert - 1'b1;
-						two_cm_vert_counter <= 0;
-					end
-				end
-				4'd4: begin //Backward
-					two_cm_vert_counter <= two_cm_vert_counter - 1'b1;
-					if(two_cm_vert_counter == 0) begin
-						vert <= vert + 1'b1;
-						two_cm_vert_counter <= counter_threshold;
-					end
-				end
-				4'd5: begin //Reverse (About half the speed of backward movement. Only decrements the distance counter half the time.)
-					reverse_counter = reverse_counter + 1'b1;
-					if(reverse_counter == 2'd2) begin
-						two_cm_vert_counter <= two_cm_vert_counter - 1'b1;
-						reverse_counter <= 2'd0;
-						if(two_cm_vert_counter == 0) begin
-							vert <= vert + 1'b1;
-							two_cm_vert_counter <= counter_threshold;
-						end
-					end
-				end
-				4'd2: begin //Right
-					two_cm_horz_counter <= two_cm_horz_counter + 1'b1;
-					if(two_cm_horz_counter == counter_threshold) begin
-						horz <= horz - 1'b1;
-						two_cm_horz_counter <= 0;
-					end
-				end
-				4'd3: begin //Left
-					two_cm_horz_counter <= two_cm_horz_counter - 1'b1;
-				k(	if(two_cm_horz_counter == 0) begin
-						horz <= horz + 1'b1;
-						two_cm_horz_counter <= counter_threshold;
-					end
-				end
-				default: begin 
-							vert <= vert;
-							horz <= horz;
-						end
-			endcase
-
-	// clock division (20 cycles per second)
-	rate_divider sec(
-	    .clock(CLOCK_50),
-	    .resetn(reset),
-	    .new_clock(new_clk));
-	    
-
-
-    // Instantiate datapath
-    datapath_VGA d0(
-        .clk(CLOCK_50),
-        .resetn(reset),
-        .color_in(color_in),
-        .x_in(vert),
-        .y_in(horz),
-        .x_offset(x_offset),
-        .y_offset(y_offset),
-        .x_out(x),
-        .y_out(y),
-        .color_out(color));
-
-    // Instantiate FSM control
-    control_VGA c0(
-        .clk(CLOCK_50),
-        .resetn(reset),
-        .go(1'b0),
-        .x_offset(x_offset),
-        .y_offset(y_offset),
-        .plot(writeEn));
-    
-	 
-
-
 endmodule
 
 module control(
@@ -331,8 +175,8 @@ module control(
     output diag1,
     output diag2,
     output diag3,
-	 output diag4,
-	 output diag5,
+	 output [3:0] diag4,
+	 output [3:0] diag5,
 	 output diag6
     );
 
@@ -723,9 +567,7 @@ module control(
             else if (current_state == S_MOVE_REVERSE)
                 distance_count <= distance_count - 64'b1;
         end
-    
-    
-    
+
     // State transition
     always@(posedge clk)
         if (reset) begin
@@ -934,88 +776,3 @@ module simple_divider_64(
             current_state <= next_state;
         end
 endmodule
-
-
-module control_VGA(
-    input clk,
-    input resetn,
-    input go,
-	
-	//input state
-
-    output x_offset, y_offset,
-    output plot
-    );
-
-    assign x_offset = counter[0];
-    assign y_offset = counter[1];
-    assign plot = 1'b1;
-
-    reg [2:0] counter;
-
-    always@(posedge clk)
-        if (resetn)
-            counter <= 2'b0;
-        else
-            counter <= counter + 1;
-
-endmodule
-
-module datapath_VGA(
-    input clk,
-    input resetn,
-
-    input [2:0] color_in,
-    input [7:0] x_in,
-    input [6:0] y_in,
-
-    input x_offset,
-    input y_offset,
-
-    output reg [7:0] x_out,
-    output reg [6:0] y_out,
-    output reg [2:0] color_out
-    );
-
-    always@(posedge clk)
-        if(resetn) begin
-            x_out <= 8'b0;
-            y_out <= 7'b0;
-            color_out <= 3'b0;
-        end else begin
-            x_out <= x_in + x_offset;
-            y_out <= y_in + y_offset;
-            color_out <= color_in;
-        end
-
-
-endmodule
-
-
-
-module rate_divider(clock, resetn, clk);
-input  clock, resetn;
-output reg clk;
-reg [25:0] q_current;
-
-always @(posedge clock)
-begin
-    if (resetn)
-        begin
-        q_current <= 26'b00000000000000000000000000;
-        clk <= 1'b0;
-        end
-    else if(q_current == 26'b00001001100010010110100000)  // 2.5 million (20 updates per second)
-	begin
-        q_current <=0;
-	    clk <= ~clk;
-	end
-    else
-    	q_current <= q_current + 1'b1;
-
-end
-
-endmodule
-
-
-
