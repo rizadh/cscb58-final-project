@@ -244,7 +244,7 @@ module control(
     assign diag1 = turn_complete;
     assign diag2 = reverse_complete;
     assign diag3 = avoid_complete;
-     assign diag6 = state_change_complete;
+    assign diag6 = state_change_complete;
 
     // States
     localparam S_STOP          = 4'd0,
