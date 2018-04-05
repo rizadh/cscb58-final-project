@@ -1,0 +1,110 @@
+CSCB58 Project File: Winter 2018
+
+Team Member A
+-------------
+
+First Name: Mykhaylo
+Last Name: Plotnykov
+Student Number: 10022085074
+UofT E-mail Address: mykhaylo.plotnykov@mail.utoronto.ca
+
+
+Team Member B
+-------------
+
+First Name: Taras
+Last Name: Tomachevski
+Student Number: 1001451225
+UofT E-mail Address: terry.tomachevski@mail.utoronto.ca
+
+Team Member C
+-------------
+
+First Name: Rizadh
+Last Name: Mohamed Nizam
+Student Number: 1002307434
+UofT E-mail Address: rizadh.mohamednizam@mail.utoronto.ca
+
+Team Member D
+-------------
+
+First Name: Tiantian
+Last Name: Mi
+Student Number: 1000167017
+UofT E-mail Address: tiantian.mi@mail.utoronto.ca
+
+Project Details
+---------------
+
+Project Title: Sonic
+
+Project Description:
+
+A car powered by two electric motors controlled using DE2 board circuitry. The car will move forward by default but will be able to turn around or away from obstacles (whether a small object or a wall) using ultrasonic sensors. As an optional feature, the car will map the path it takes on the VGA screen, creating a rough map of the car's surroundings.
+
+Video URL: https://www.youtube.com/watch?v=4WoaoYWtuqA
+
+Code URL (please upload a copy of this file to your repository at the end of the project as well, it will
+serve as a useful resource for future development): https://github.com/rizadh/cscb58-final-project
+
+
+Proposal
+--------
+
+What do you plan to have completed by the end of the first lab session?:
+
+Explore how motors and sensors can interface with the DE2 board through the GPIO pins. Specifically, by the end of the lab, we want to be able to switch on and off the motor using the DE2 board. We also need to determine if an external power supply will be needed to power the motors and how they can be controlled by the DE2 board.
+
+What do you plan to have completed by the end of the second lab session?:
+
+Observe the pre-version of the working model of the car, determine functionalities which can be implemented and test them (left, right turn, stop).
+
+What do you plan to have completed by the end of the third lab session?:
+
+Have a running version of the car (all connected) and test some of the features which are discussed in the proposal. If everything work, implement the optional part of the proposal.
+
+What is your backup plan if things don't work out as planned?
+
+For the case when our motors are not running, we can output the signal on LED's or VGA "pretend" that the car is working. Then in the case when our sensors are not working as we expected, we can input some manual signal. This is all done in order to show that our code is working as was planned. 
+
+What hardware will you need beyond the DE2 board:
+
+- electrical motor (2)
+- ultrasonic sensor (1)
+- VGA display (1)
+
+Motivations
+-----------
+
+How does this project relate to the material covered in CSCB58?:
+
+The project involves a logic circuit, which drives, in this case a real physical object. Some of the logical units are the same as we have learned in the course, such as the FSM states for the car while approaching an object (for example, "there is nothing in front of me", "there is something, but it's far away, so slow down", "there is something right in front of me, stop").  We may use a counter to implement the turning of the car, by calculating approximately how long it would take for the car to make a turn of the desired degree, and then counting down while applying turning force from the motors. As we work and become familiar with our proposed interconnected system of the DE2 board, motors, sensors, and the system's logical backbone expressed in Verilog, this project will also deepen our understanding of Verilog as we study the way it can join different pieces of hardware. We will come to understand the nature of the interactions between these different units of hardware, with different internal organizations, including the limitations resulting from those differences.
+
+Why is this project interesting/cool (for CSCB58 students, and for non CSCB58 students?):
+
+For non CSCB58 students, it's good to be able to point to something physical so that they can more easily understand the "real world" value of the computing skills we are learning,
+that they aren't just abstract or confined to the online world. A car works well for this, because they will make the connection between it and real cars.
+
+For CSCB58 students, it will be novel to see the DE2 board controlling the operations of an object other than a computer or screen. Many of the past projects featured on the website
+were games, but our project will use the board to power (visible) physical motion. They might also find it interesting to observe the operation and application of a ultrasonic sensor, which they probably haven't seen before. The project should also instil in us an appreciation of the work required to implement seemingly simple functions through circuitry.
+
+Why did you personally choose this project?:
+
+We felt that building a physical device would be more rewarding than a purely digital project. A car was an obvious choice, and was a flexible project that would give us an opportunity to iterate the design to add new functionality, as time permits. We were also enthusiastic about the level of ambition involved in the project. It offers the opportunity for us to fully apply ourselves and the concepts we learned in the course, with the promise of an enriching experience that should yield a charming souvenir of our university studies, if we succeed.
+
+Attributions
+------------
+
+Provide a complete list of any external resources your project used (attributions should also be included in your
+code).
+
+N/A
+
+Updates
+-------
+
+Week 1: We experimented with motors and ultrasonic sensors. After trying out both simple and stepper motors, we determined that simple motors were sufficient for our project and much simpler to use. We encountered difficulties with the ultrasonic sensor, particularly receiving 'echo' signals back from the sensor module. Debugging this took a long time, with limited success, so the task will have to carry over to next week. However, we were able to build the non-electronic components of the car earlier than expected as well as attaching the motors to the frame.
+
+Week 2: The ultrasonic sensor is working correctly and is integrated with our assembled car. It is able to detect an object at set distances in front of it and change the state of the car's motors to reverse and turn. We worked on measuring the speed of the car during forward, reverse, and turning motion so that we will be able to keep track of the car's total distance travelled. We hope this will allow us to implement a feature for the car to "retrace its steps" and return to its original position. We are working on an updated FSM to include this feature. At this point, our FSM has all the basic features which we originally planned and in the next week, we will be working on improving it. We also have an unresolved problem with the circuit connecting the car to the breadboard, we are using an H-bridge circuit in order to get forward and reverse motion, which at the moment has few issues. The voltage sent to the car is less than the maximum level, and we need more so that the wheels don't stop while changing from forward to reverse (they sometimes stop and need a push in the right direction to resume turning). Finally, while testing the physical motion of the car, we found that the wires were too short, which became an issue during the car's travel. For now, we will just try to work carefully with the wires, but we are also thinking about how to keep the car connected to the board.
+
+Week 3: The FSM was updated to enable the car to track its direction of travel. Using this information, the car will always attempt to return to its original direction of travel after turning to avoid one or more obstacle(s). The H-bridge was also reconstructed, adding in PNP transistors to allow increased current through the motors. This should fix the issue where the motors would occasionally get stuck, typically when switching direction of motion. In addition, a minor error where the distance counter would start at 1 instead of 0 is now fixed. With the targetted features of the car now complete, we looked to add secondary features. Specfically, mapping the path travelled by the car on a VGA-connected screen. The module to draw the path onto the screen has been implemented and tested with success. However, it has not yet been integrated with the main FSM.
