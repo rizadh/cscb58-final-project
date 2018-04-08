@@ -190,10 +190,10 @@ module control(
     // Timing parameters
     reg reverse_active, turn_active, avoid_active, turn_back_active, state_change_active;
     wire turn_complete, reverse_complete, avoid_complete, turn_back_complete, state_change_complete;
-    localparam REVERSE_CYCLES      = 32'd150_000_000, // 1500ms
-               TURN_CYCLES         = 32'd150_000_000, // 0.4s
-               AVOID_CYCLES        = 32'd150_000_000, // 3s
-               STATE_CHANGE_CYCLES = 32'd2_500_000;   // 0.5ms
+    localparam REVERSE_CYCLES      = 32'd150_000_000, // 1500ms - the length of time the car should reverse
+               TURN_CYCLES         = 32'd150_000_000, // 0.4s - the turn left or right
+               AVOID_CYCLES        = 32'd150_000_000, // 3s - the length of time the car should move left, right, or backward before checking whether a left turn is possible
+               STATE_CHANGE_CYCLES = 32'd2_500_000;   // 0.5ms - the state change grace period.
 
     // Timers
     timer_32 reverse_timer(
@@ -242,11 +242,11 @@ module control(
                S_MOVE_FORWARD  = 4'd1,
                S_MOVE_RIGHT    = 4'd2,
                S_MOVE_LEFT     = 4'd3,
-               S_MOVE_BACKWARD = 4'd4,
-               S_MOVE_REVERSE  = 4'd5,
+               S_MOVE_BACKWARD = 4'd4, // Backward means the car is facing backward and moving backward
+               S_MOVE_REVERSE  = 4'd5, // Reverse means the car is facing forward and moving backward; this happens if it has detected an obstacle in front of it
                S_TURN_RIGHT    = 4'd6,
                S_TURN_LEFT     = 4'd7,
-               S_TURN_BACK     = 4'd8;
+               S_TURN_BACK     = 4'd8; // Turn back means undoing a left turn
 
     // Initial state
     initial begin
@@ -280,13 +280,24 @@ module control(
         endcase
     end
 
-    // State control (FSM)
+    // State control (FSM) -
+    // The car starts in neutral and begins moving forward when the start switch is flipped on. Every time it detects an obstacle in front of it, it will reverse and turn right.
+    // If this results in it moving in a non-forward direction, it will periodically, every 3 seconds, check its left to see if a turn is possible, since this will bring it closer
+    // to moving forward again, which it wants to be doing. If it can't turn left, because there's
+    // something in the way, it will undo the left turn ("turn back"), and keep moving until the next 3 second interval or reaching another obstacle.
+
+
+
+    // There is a 0.5ms time between state changes during which the state being transitioned to is inactive. This is to account for the intermediate states being
+    // transitioned through as the bits flip from one state to the next. We don't want them turning on. The 0.5ms should be enough for the transition to complete.
     always@(posedge clk) begin
         case (current_state)
         S_STOP: begin
+            // If this is the state we want to end up in, correct_next_state_STOP will be 1. The state_change complete will be 1 when 0.5ms has passed from the initiation of the transition.
             if(correct_next_state_STOP && state_change_complete) begin
                 state_change_active = 1'b0;
 
+                // If the start switch has been turned on, switch to forward state, otherwise remain in neutral
                 if(start) begin
                     correct_next_state_STOP <= 1'b0;
                     correct_next_state_MOVE_FORWARD <= 1'b1;
@@ -300,6 +311,7 @@ module control(
             if(correct_next_state_MOVE_FORWARD && state_change_complete) begin
                 state_change_active = 1'b0;
 
+                // Once an obstacle is detected in front of the car, it reverses
                 if(obstacle_detected) begin
                     correct_next_state_MOVE_FORWARD = 1'b0;
                     correct_next_state_MOVE_REVERSE = 1'b1;
@@ -309,7 +321,8 @@ module control(
                     correct_next_state <= S_MOVE_FORWARD;
             end
         end
-        S_MOVE_RIGHT: begin
+        S_MOVE_RIGHT: begin  // Every 3 seconds, avoid_complete will be 1 and the car will check to its left to see if there is a clear path. If not, it will continue moving right
+                // until reaching an obstacle.
             if(correct_next_state_MOVE_RIGHT && state_change_complete) begin
                 state_change_active = 1'b0;
 
@@ -327,7 +340,7 @@ module control(
                     correct_next_state = S_MOVE_RIGHT;
             end
         end
-        S_MOVE_LEFT: begin
+        S_MOVE_LEFT: begin // similar to move right
             if(correct_next_state_MOVE_LEFT && state_change_complete) begin
                 state_change_active = 1'b0;
 
@@ -345,7 +358,7 @@ module control(
                     correct_next_state = S_MOVE_LEFT;
             end
         end
-        S_MOVE_BACKWARD:  begin
+        S_MOVE_BACKWARD:  begin // similar to move right and move left
             if(correct_next_state_MOVE_BACKWARD && state_change_complete) begin
                 state_change_active = 1'b0;
 
@@ -363,7 +376,7 @@ module control(
                     correct_next_state = S_MOVE_BACKWARD;
             end
         end
-        S_MOVE_REVERSE: begin
+        S_MOVE_REVERSE: begin // Reverse until enough time has passed (reverse_complete becomes 1), then turn right.
             if(correct_next_state_MOVE_REVERSE && state_change_complete) begin
                 state_change_active = 1'b0;
 
@@ -376,7 +389,8 @@ module control(
                     correct_next_state <= S_MOVE_REVERSE;
             end
         end
-        S_TURN_LEFT: begin
+        S_TURN_LEFT: begin // Once the turn is complete, either undo the left turn if an obstacle is detected, or, if the way is clear, move in that direction. The prev_state
+                           // variable keeps track of the direction it was moving before it turned left.
             if(correct_next_state_TURN_LEFT && state_change_complete) begin
                 state_change_active = 1'b0;
 
@@ -417,7 +431,7 @@ module control(
                     correct_next_state <= S_TURN_LEFT;
             end
         end
-        S_TURN_RIGHT: begin
+        S_TURN_RIGHT: begin // similar to turn left
             if(correct_next_state_TURN_RIGHT && state_change_complete) begin
                 state_change_active = 1'b0;
 
@@ -457,7 +471,7 @@ module control(
                     correct_next_state = S_TURN_RIGHT;
             end
         end
-        S_TURN_BACK: begin
+        S_TURN_BACK: begin // turn_back means undoing a left turn
             if(correct_next_state_TURN_BACK && state_change_complete) begin
                 state_change_active = 1'b0;
 
@@ -608,6 +622,8 @@ module sensor(
     reg trig_complete;
     reg [1:0] obstacle_detected_count;
 
+    // A pulse is sent from the sensor every 100 ms lasting 10 us. The returning signal must last at least 58000 clock cycles, translating to 20cm, for the car to consider
+    // that there is an obstacle in front it. We used the first listed attribution as a base for this section.
     localparam TRIGGER_WIDTH  = 23'd500, // 10 us
                TRIGGER_PERIOD = 23'd5_000_000, // 100 ms
                ECHO_THRESHOLD = 58_000; // 20 cm
@@ -633,6 +649,7 @@ module sensor(
         echo_time <= echo_time + 1;
         else if (~echo && trig_complete) begin
             if (echo_time < ECHO_THRESHOLD) begin
+                // In order to account for false flags, we only count obstacle detections that last for four 100 ms periods in a row.
                 if (obstacle_detected_count < 2'b11)
                     obstacle_detected_count <= obstacle_detected_count + 2'b1;
             end else
