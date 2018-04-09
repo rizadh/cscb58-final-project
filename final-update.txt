@@ -65,7 +65,7 @@ Have a running version of the car (all connected) and test some of the features 
 
 What is your backup plan if things don't work out as planned?
 
-For the case when our motors are not running, we can output the signal on LED's or VGA "pretend" that the car is working. Then in the case when our sensors are not working as we expected, we can input some manual signal. This is all done in order to show that our code is working as was planned. 
+For the case when our motors are not running, we can output the signal on LEDs or VGA "pretend" that the car is working. Then in the case when our sensors are not working as we expected, we can input some manual signal. This is all done in order to show that our code is working as was planned.
 
 What hardware will you need beyond the DE2 board:
 
@@ -95,10 +95,16 @@ We felt that building a physical device would be more rewarding than a purely di
 Attributions
 ------------
 
-Provide a complete list of any external resources your project used (attributions should also be included in your
-code).
+We looked at the VHDL code shown on this webpage: https://stackoverflow.com/questions/27580741/vhdl-ultrasonic-sensorhc-sr04 to wrap our heads around how to operate the sensor.
+Although we ended up making significant additions, alterations and transformations to fit our needs, we used this as a base when we didn't know where to start.
+It demonstrates sending a 500 microsecond pulse through the sensor and measuring the length of returning signal to determine whether there is an object within a certain distance
+of the sensor.
+Although this information was on the sensor's manual page, seeing it in code made it easier for us to understand.
 
-N/A
+http://www.learningaboutelectronics.com/Articles/H-bridge-circuit-with-transistors.php
+In order to allow the car to reverse, we had to learn to build an H-bridge on the breadboard.
+
+
 
 Updates
 -------
@@ -108,3 +114,5 @@ Week 1: We experimented with motors and ultrasonic sensors. After trying out bot
 Week 2: The ultrasonic sensor is working correctly and is integrated with our assembled car. It is able to detect an object at set distances in front of it and change the state of the car's motors to reverse and turn. We worked on measuring the speed of the car during forward, reverse, and turning motion so that we will be able to keep track of the car's total distance travelled. We hope this will allow us to implement a feature for the car to "retrace its steps" and return to its original position. We are working on an updated FSM to include this feature. At this point, our FSM has all the basic features which we originally planned and in the next week, we will be working on improving it. We also have an unresolved problem with the circuit connecting the car to the breadboard, we are using an H-bridge circuit in order to get forward and reverse motion, which at the moment has few issues. The voltage sent to the car is less than the maximum level, and we need more so that the wheels don't stop while changing from forward to reverse (they sometimes stop and need a push in the right direction to resume turning). Finally, while testing the physical motion of the car, we found that the wires were too short, which became an issue during the car's travel. For now, we will just try to work carefully with the wires, but we are also thinking about how to keep the car connected to the board.
 
 Week 3: The FSM was updated to enable the car to track its direction of travel. Using this information, the car will always attempt to return to its original direction of travel after turning to avoid one or more obstacle(s). The H-bridge was also reconstructed, adding in PNP transistors to allow increased current through the motors. This should fix the issue where the motors would occasionally get stuck, typically when switching direction of motion. In addition, a minor error where the distance counter would start at 1 instead of 0 is now fixed. With the targetted features of the car now complete, we looked to add secondary features. Specfically, mapping the path travelled by the car on a VGA-connected screen. The module to draw the path onto the screen has been implemented and tested with success. However, it has not yet been integrated with the main FSM.
+
+Week 4: Due to not being able to test at home, although we created almost-functional code to draw the path of the car on the VGA as well as a reset to clear the screen, we were unable to debug it and get it working during the final lab session (apparently, there is a limit of 5000 iterations in order for loops to compile in Quartus).
