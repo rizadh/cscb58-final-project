@@ -40,7 +40,12 @@ Project Title: Sonic
 
 Project Description:
 
-A car powered by two electric motors controlled using DE2 board circuitry. The car will move forward by default but will be able to turn around or away from obstacles (whether a small object or a wall) using ultrasonic sensors. As an optional feature, the car will map the path it takes on the VGA screen, creating a rough map of the car's surroundings.
+A car powered by two electric motors controlled using DE2 board circuitry.
+The car will move forward by default but will be able to turn around or away from obstacles
+(whether a small object or a wall) using ultrasonic sensors.
+After turning, the car remembers its natural "forward" position and tries to return to it.
+A distance counter tracks how far the car has moved forward. It accounts for movement in the opposite direction.
+As an optional feature, the car will map the path it takes on the VGA screen, creating a rough map of the car's surroundings.
 
 Video URL: https://www.youtube.com/watch?v=4WoaoYWtuqA
 
@@ -115,4 +120,4 @@ Week 2: The ultrasonic sensor is working correctly and is integrated with our as
 
 Week 3: The FSM was updated to enable the car to track its direction of travel. Using this information, the car will always attempt to return to its original direction of travel after turning to avoid one or more obstacle(s). The H-bridge was also reconstructed, adding in PNP transistors to allow increased current through the motors. This should fix the issue where the motors would occasionally get stuck, typically when switching direction of motion. In addition, a minor error where the distance counter would start at 1 instead of 0 is now fixed. With the targetted features of the car now complete, we looked to add secondary features. Specfically, mapping the path travelled by the car on a VGA-connected screen. The module to draw the path onto the screen has been implemented and tested with success. However, it has not yet been integrated with the main FSM.
 
-Week 4: Due to not being able to test at home, although we created almost-functional code to draw the path of the car on the VGA as well as a reset to clear the screen, we were unable to debug it and get it working during the final lab session (apparently, there is a limit of 5000 iterations in order for loops to compile in Quartus).
+Week 4: Although we created almost-functional code to draw the path of the car on the VGA as well as a reset to clear the screen, we were unable to debug it and get it working during the final lab session (apparently, there is a limit of 5000 iterations in order for loops to compile in Quartus).
